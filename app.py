@@ -2,13 +2,16 @@ import streamlit as st
 
 
 def main():
-    st.title("Clothes modelling application")
-    image = st.file_uploader(
-        label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'])
-    if image:
-        returned_image = get_model_image(image)
-        st.image(returned_image)
+    import time
 
+    st.title("Clothes modelling application")
+    images = st.file_uploader(
+        label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True)
+    if images:
+        for image in images:
+            returned_image = get_model_image(image)
+            st.image(returned_image)
+            time.sleep(30)
 
 def get_model_image(image):
     from google import genai
