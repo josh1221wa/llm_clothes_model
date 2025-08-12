@@ -7,11 +7,13 @@ def main():
     st.title("Clothes modelling application")
     images = st.file_uploader(
         label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True)
-    if images:
-        for image in images:
+    st.session_state.images = images
+    if st.session_state.images:
+        for image in st.session_state.images:
             returned_image = get_model_image(image)
             st.image(returned_image)
             time.sleep(30)
+
 
 def get_model_image(image):
     from google import genai
@@ -29,7 +31,7 @@ def get_model_image(image):
 
     text_input = ('The given is an image of a piece of clothing. I want you to generate a ultrarealistic image of the clothing on a person.',
                   'You must strictly make sure that the clothing is represented exactly how is given in the reference image.',
-                  'You must show the person completely from head to toes and if any necessary piece of clothing is missing (such as a bottom from an image of a top), you may add as appropriate.',
+                  'You must show the person completely from head to toe and if any necessary piece of clothing is missing (such as a bottom from an image of a top), you may add as appropriate.',
                   'The generated image is to be used to display the item on an ecommerce website so keep that in mind when generating it.')
     response = client.models.generate_content(
         model="gemini-2.0-flash-preview-image-generation",
