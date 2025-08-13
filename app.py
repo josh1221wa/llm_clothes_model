@@ -37,7 +37,8 @@ def get_model_image(image):
         model="gemini-2.0-flash-preview-image-generation",
         contents=[text_input, image],
         config=types.GenerateContentConfig(
-            response_modalities=['TEXT', 'IMAGE']
+            response_modalities=['TEXT', 'IMAGE'],
+            temperature=0.5
         )
     )
 
