@@ -5,14 +5,35 @@ def main():
     import time
 
     st.title("Clothes modelling application")
-    images = st.file_uploader(
-        label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True)
-    st.session_state.images = images
-    if st.session_state.images:
-        for image in st.session_state.images:
-            returned_image = get_model_image(image)
-            st.image(returned_image)
+
+    upload_validation = False
+
+    while not upload_validation:
+        images = st.file_uploader(
+            label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
+        if len(images) > 50:
+            st.toast("⚠️ Only 50 files can be processed at any given time!")
+        else:
+            upload_validation = True
+
+    cache_images(images)
+
+    if st.session_state.images != []:
+        for i in range(len(st.session_state.images)):
+            generated_data = get_model_image(
+                st.session_state.images[i]['input_image'])
+            st.session_state.images[i]['output_image'] = generated_data["image"]
+            st.session_state.images[i]['image_description'] = generated_data["text"]
             time.sleep(30)
+
+
+def cache_images(images):
+    import io
+    st.session_state.images = []
+
+    for i in range(len(images)):
+        st.session_state.images.append(
+            {"image_id": f"Image {i+1}", "input_image": io.BytesIO(images[i].read()), "output_image": None, "image_description": None})
 
 
 def get_model_image(image):
@@ -42,12 +63,15 @@ def get_model_image(image):
         )
     )
 
+    output = {"text": None, "image": None}
     for part in response.candidates[0].content.parts:
         if part.text is not None:
-            print(part.text)
+            output["text"] = part.text
         elif part.inline_data is not None:
             image = BytesIO((part.inline_data.data))
-            return image
+            output["image"] = image
+
+    return output
 
 
 main()
