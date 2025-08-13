@@ -19,11 +19,14 @@ def main():
     cache_images(images)
 
     if st.session_state.images != []:
+        my_bar = st.progress(0, text="Operation starting. Please wait.")
         for i in range(len(st.session_state.images)):
             generated_data = get_model_image(
                 st.session_state.images[i]['input_image'])
             st.session_state.images[i]['output_image'] = generated_data["image"]
             st.session_state.images[i]['image_description'] = generated_data["text"]
+            my_bar.progress(value=((i+1)/len(st.session_state.images)),
+                            text=f"{i+1}/{len(st.session_state.images)} completed")
             time.sleep(30)
 
 
