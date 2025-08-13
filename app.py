@@ -25,8 +25,17 @@ def main():
                 st.session_state.images[i]['input_image'])
             st.session_state.images[i]['output_image'] = generated_data["image"]
             st.session_state.images[i]['image_description'] = generated_data["text"]
+
             my_bar.progress(value=((i+1)/len(st.session_state.images)),
                             text=f"{i+1}/{len(st.session_state.images)} completed")
+
+            with st.expander(label=f"Image {i+1}"):
+                col1, col2 = st.columns(2, vertical_alignment="center")
+                with col1:
+                    st.image(st.session_state.images[i]['input_image'])
+                with col2:
+                    st.image(st.session_state.images[i]['output_image'])
+
             time.sleep(30)
 
 
