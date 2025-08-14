@@ -9,17 +9,25 @@ def main():
     upload_validation = False
 
     while not upload_validation:
-        images = st.file_uploader(
-            label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
-        if len(images) > 50:
-            st.toast("⚠️ Only 50 files can be processed at any given time!")
-        else:
-            upload_validation = True
+        upload_container = st.empty()
+        with upload_container:
+            images = st.file_uploader(
+                label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
+            print(len(images))
+            if len(images) > 0 and len(images) > 50:
+                st.toast("⚠️ Only 50 files can be processed at any given time!")
+            else:
+                upload_validation = True
 
     cache_images(images)
 
     if st.session_state.images != []:
-        my_bar = st.progress(0, text="Operation starting. Please wait.")
+        with upload_container:
+            st.text("✅ Upload complete")
+            for i in range(5, 0, -1):
+                st.progress(0, f"⌛ Starting operation in {i}s")
+                time.sleep(1)
+            my_bar = st.progress(0, text="Operation starting. Please wait.")
         for i in range(len(st.session_state.images)):
             generated_data = generate_image(
                 st.session_state.images[i]['input_image'])
