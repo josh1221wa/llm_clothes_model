@@ -21,7 +21,7 @@ def main():
     if st.session_state.images != []:
         my_bar = st.progress(0, text="Operation starting. Please wait.")
         for i in range(len(st.session_state.images)):
-            generated_data = get_model_image(
+            generated_data = generate_image(
                 st.session_state.images[i]['input_image'])
             st.session_state.images[i]['output_image'] = generated_data["image"]
             st.session_state.images[i]['image_description'] = generated_data["text"]
@@ -29,14 +29,30 @@ def main():
             my_bar.progress(value=((i+1)/len(st.session_state.images)),
                             text=f"{i+1}/{len(st.session_state.images)} completed")
 
-            with st.expander(label=f"Image {i+1}"):
-                col1, col2 = st.columns(2, vertical_alignment="center")
-                with col1:
-                    st.image(st.session_state.images[i]['input_image'])
-                with col2:
-                    st.image(st.session_state.images[i]['output_image'])
+            if i != (len(st.session_state.images)-1):
+                time.sleep(30)
 
-            time.sleep(30)
+        image_display()
+
+
+@st.fragment
+def image_display():
+    for i in range(len(st.session_state.images)):
+        with st.expander(label=f"Image {i+1}"):
+            col1, col2 = st.columns(
+                2, vertical_alignment="center")
+            with col1:
+                st.image(st.session_state.images[i]['input_image'])
+            with col2:
+                st.image(st.session_state.images[i]['output_image'])
+
+    col1, col2 = st.columns(2, vertical_alignment="top")
+    with col1:
+        image_id = st.number_input(label="Enter image number to regenerate",
+                                   min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
+    with col2:
+        st.button(label="Regenerate image",
+                  on_click=lambda: regenerate_image(image_id), type='primary')
 
 
 def cache_images(images):
@@ -48,7 +64,15 @@ def cache_images(images):
             {"image_id": f"Image {i+1}", "input_image": io.BytesIO(images[i].read()), "output_image": None, "image_description": None})
 
 
-def get_model_image(image):
+def regenerate_image(image_id):
+    image_index = int(image_id - 1)
+    generated_data = generate_image(
+        st.session_state.images[image_index]['input_image'])
+    st.session_state.images[image_index]['output_image'] = generated_data["image"]
+    st.session_state.images[image_index]['image_description'] = generated_data["text"]
+
+
+def generate_image(image):
     from google import genai
     from google.genai import types
     from io import BytesIO
