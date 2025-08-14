@@ -13,7 +13,6 @@ def main():
         with upload_container:
             images = st.file_uploader(
                 label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
-            print(len(images))
             if len(images) > 0 and len(images) > 50:
                 st.toast("⚠️ Only 50 files can be processed at any given time!")
             else:
