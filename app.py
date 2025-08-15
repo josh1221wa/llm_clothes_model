@@ -4,7 +4,8 @@ import streamlit as st
 def main():
     import time
 
-    st.title("Clothes modelling application")
+    st.image(image="logo.png", width=120)
+    st.title("Amar Saath Clothes Modelling")
 
     upload_validation = False
 
@@ -44,6 +45,7 @@ def main():
 
 @st.fragment
 def image_display():
+    st.markdown("### Review Images")
     for i in range(len(st.session_state.images)):
         with st.expander(label=f"Image {i+1}"):
             col1, col2 = st.columns(
@@ -53,7 +55,10 @@ def image_display():
             with col2:
                 st.image(st.session_state.images[i]['output_image'])
 
-    col1, col2 = st.columns(2, vertical_alignment="top")
+    st.markdown("### Regenerate Images")
+    st.text("⚠️ Only try to regenerate images one at a time")
+
+    col1, col2 = st.columns(2, vertical_alignment="bottom")
     with col1:
         image_id = st.number_input(label="Enter image number to regenerate",
                                    min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
