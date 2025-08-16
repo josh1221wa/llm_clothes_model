@@ -1,20 +1,34 @@
 import streamlit as st
+import time
+from google import genai
+from google.genai import types
+from google.genai.errors import ClientError
+from io import BytesIO
+from dotenv import load_dotenv
+import os
+import PIL.Image
+
+load_dotenv()
+
+st.session_state.setdefault("images", [])
+st.session_state.setdefault("error_status", {
+    "continue_processing": True,
+    "error_msg": None
+})
 
 
 def main():
-    import time
-
     st.image(image="logo.png", width=120)
     st.title("Amar Saath Clothes Modelling")
 
+    st.session_state.setdefault("upload_container", st.empty())
     upload_validation = False
 
     while not upload_validation:
-        upload_container = st.empty()
-        with upload_container:
+        with st.session_state.upload_container:
             images = st.file_uploader(
                 label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
-            if len(images) > 0 and len(images) > 50:
+            if images and len(images) > 50:
                 st.toast("⚠️ Only 50 files can be processed at any given time!")
             else:
                 upload_validation = True
@@ -22,23 +36,30 @@ def main():
     cache_images(images)
 
     if st.session_state.images != []:
-        with upload_container:
+        with st.session_state.upload_container:
             st.text("✅ Upload complete")
             for i in range(5, 0, -1):
-                st.progress(0, f"⌛ Starting operation in {i}s")
+                st.progress(0, text=f"⌛ Starting operation in {i}s")
                 time.sleep(1)
             my_bar = st.progress(0, text="Operation starting. Please wait.")
         for i in range(len(st.session_state.images)):
-            generated_data = generate_image(
-                st.session_state.images[i]['input_image'])
-            st.session_state.images[i]['output_image'] = generated_data["image"]
-            st.session_state.images[i]['image_description'] = generated_data["text"]
+            if st.session_state.error_status["continue_processing"] is True:
+                generated_data = generate_image(
+                    st.session_state.images[i]['input_image'])
+                st.session_state.images[i]['output_image'] = generated_data["image"]
+                st.session_state.images[i]['image_description'] = generated_data["text"]
 
-            my_bar.progress(value=((i+1)/len(st.session_state.images)),
-                            text=f"{i+1}/{len(st.session_state.images)} completed")
+                my_bar.progress(value=((i+1)/len(st.session_state.images)),
+                                text=f"{i+1}/{len(st.session_state.images)} completed")
 
-            if i != (len(st.session_state.images)-1):
-                time.sleep(30)
+                if i != (len(st.session_state.images)-1):
+                    time.sleep(30)
+
+            if st.session_state.error_status["continue_processing"] is False:
+                with st.session_state.upload_container:
+                    st.error(
+                        st.session_state.error_status['error_msg'], icon="⚠️")
+                    break
 
         image_display()
 
@@ -47,52 +68,53 @@ def main():
 def image_display():
     st.markdown("### Review Images")
     for i in range(len(st.session_state.images)):
-        with st.expander(label=f"Image {i+1}"):
-            col1, col2 = st.columns(
-                2, vertical_alignment="center")
-            with col1:
-                st.image(st.session_state.images[i]['input_image'])
-            with col2:
-                st.image(st.session_state.images[i]['output_image'])
+        if st.session_state.images[i]['output_image'] is not None:
+            with st.expander(label=f"Image {i+1}"):
+                col1, col2 = st.columns(
+                    2, vertical_alignment="center")
+                with col1:
+                    st.image(st.session_state.images[i]['input_image'])
+                with col2:
+                    st.image(st.session_state.images[i]['output_image'])
+        else:
+            continue
 
-    st.markdown("### Regenerate Images")
-    st.text("⚠️ Only try to regenerate images one at a time")
+    if st.session_state.error_status["continue_processing"] is True:
+        st.markdown("### Regenerate Images")
+        st.text("⚠️ Only try to regenerate images one at a time")
 
-    col1, col2 = st.columns(2, vertical_alignment="bottom")
-    with col1:
-        image_id = st.number_input(label="Enter image number to regenerate",
-                                   min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
-    with col2:
-        st.button(label="Regenerate image",
-                  on_click=lambda: regenerate_image(image_id), type='primary')
+        col1, col2 = st.columns(2, vertical_alignment="bottom")
+        with col1:
+            image_id = st.number_input(label="Enter image number to regenerate",
+                                       min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
+        with col2:
+            st.button(label="Regenerate image",
+                      on_click=lambda: regenerate_image(image_id), type='primary')
 
 
 def cache_images(images):
-    import io
-    st.session_state.images = []
-
     for i in range(len(images)):
         st.session_state.images.append(
-            {"image_id": f"Image {i+1}", "input_image": io.BytesIO(images[i].read()), "output_image": None, "image_description": None})
+            {"image_id": f"Image {i+1}", "input_image": BytesIO(images[i].read()), "output_image": None, "image_description": None})
 
 
 def regenerate_image(image_id):
     image_index = int(image_id - 1)
     generated_data = generate_image(
         st.session_state.images[image_index]['input_image'])
-    st.session_state.images[image_index]['output_image'] = generated_data["image"]
-    st.session_state.images[image_index]['image_description'] = generated_data["text"]
+    if st.session_state.error_status['continue_processing'] is True:
+        st.session_state.images[image_index]['output_image'] = generated_data["image"]
+        st.session_state.images[image_index]['image_description'] = generated_data["text"]
+    else:
+        with st.session_state.upload_container:
+            st.error(
+                st.session_state.error_status['error_msg'], icon="⚠️")
 
 
 def generate_image(image):
-    from google import genai
-    from google.genai import types
-    from io import BytesIO
-    from dotenv import load_dotenv
-    import os
-    import PIL.Image
 
-    load_dotenv()
+    MAX_RETRIES = 5
+    attempts = 0
 
     image = PIL.Image.open(image)
 
@@ -102,24 +124,51 @@ def generate_image(image):
                   'You must strictly make sure that the clothing is represented exactly how is given in the reference image.',
                   'You must show the person completely from head to toe and if any necessary piece of clothing is missing (such as a bottom from an image of a top), you may add as appropriate.',
                   'The generated image is to be used to display the item on an ecommerce website so keep that in mind when generating it.')
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-preview-image-generation",
-        contents=[text_input, image],
-        config=types.GenerateContentConfig(
-            response_modalities=['TEXT', 'IMAGE'],
-            temperature=0.5
-        )
-    )
 
     output = {"text": None, "image": None}
-    for part in response.candidates[0].content.parts:
-        if part.text is not None:
-            output["text"] = part.text
-        elif part.inline_data is not None:
-            image = BytesIO((part.inline_data.data))
-            output["image"] = image
 
-    return output
+    while attempts < MAX_RETRIES:
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-preview-image-generation",
+                contents=[text_input, image],
+                config=types.GenerateContentConfig(
+                    response_modalities=['TEXT', 'IMAGE'],
+                    temperature=0.5
+                )
+            )
+
+            for part in response.candidates[0].content.parts:
+                if part.text is not None:
+                    output["text"] = part.text
+                elif part.inline_data is not None:
+                    image = BytesIO((part.inline_data.data))
+                    output["image"] = image
+
+            return output
+
+        except ClientError as e:
+            if str(e).startswith("429 RESOURCE_EXHAUSTED"):
+                st.session_state.error_status['continue_processing'] = False
+                st.session_state.error_status['error_msg'] = "Your free tier quota is done for the day. Please try tomorrow. All images already processed will be displayed below and will be available for download."
+                break
+            else:
+                attempts += 1
+                last_error = e
+                if attempts != MAX_RETRIES:
+                    time.sleep(30)
+
+        except Exception as e:
+            attempts += 1
+            last_error = e
+            if attempts != MAX_RETRIES:
+                time.sleep(30)
+
+    else:
+        st.session_state.error_status['continue_processing'] = False
+        st.session_state.error_status[
+            'error_msg'] = f"Too many errors of type {type(last_error)} with error message {str(last_error)}. All images already processed will be displayed below and will be available for download."
+        return output
 
 
 main()
