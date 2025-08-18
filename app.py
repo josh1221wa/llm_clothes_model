@@ -7,6 +7,7 @@ from io import BytesIO
 from dotenv import load_dotenv
 import os
 import PIL.Image
+import zipfile
 
 load_dotenv()
 
@@ -91,6 +92,9 @@ def image_display():
             st.button(label="Regenerate image",
                       on_click=lambda: regenerate_image(image_id), type='primary')
 
+    st.markdown("### Download Images")
+    download_zip()
+
 
 def cache_images(images):
     for i in range(len(images)):
@@ -109,6 +113,18 @@ def regenerate_image(image_id):
         with st.session_state.upload_container:
             st.error(
                 st.session_state.error_status['error_msg'], icon="⚠️")
+
+
+def download_zip():
+    with BytesIO() as buffer:
+        with zipfile.ZipFile(buffer, "w") as zip:
+            for image in st.session_state.images:
+                if image["output_image"] is not None:
+                    zip.writestr(f"{image['image_id']}.png",
+                                 image["output_image"].getvalue())
+        buffer.seek(0)
+        st.download_button(label="Download ZIP", data=buffer, type='primary',
+                           icon=":material/download:", file_name="generated_images.zip", mime="application/zip")
 
 
 def generate_image(image):
