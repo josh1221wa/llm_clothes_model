@@ -4,65 +4,69 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
 from io import BytesIO
-from dotenv import load_dotenv
-import os
 import PIL.Image
 import zipfile
-
-load_dotenv()
 
 st.session_state.setdefault("images", [])
 st.session_state.setdefault("error_status", {
     "continue_processing": True,
     "error_msg": None
 })
+st.session_state.setdefault("api_key", None)
 
 
 def main():
-    st.image(image="logo.png", width=120)
-    st.title("Amar Saath Clothes Modelling")
+    st.title("LLM Clothes Modelling")
 
     st.session_state.setdefault("upload_container", st.empty())
-    upload_validation = False
 
-    while not upload_validation:
+    if st.session_state.api_key is None:
         with st.session_state.upload_container:
-            images = st.file_uploader(
-                label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
-            if images and len(images) > 50:
-                st.toast("⚠️ Only 50 files can be processed at any given time!")
-            else:
-                upload_validation = True
+            st.session_state.api_key = st.text_input(
+                label='Enter Google AI studio API key')
+    else:
+        upload_validation = False
 
-    cache_images(images)
+        while not upload_validation:
+            with st.session_state.upload_container:
+                images = st.file_uploader(
+                    label='Upload clothing image here.', type=['jpeg', 'jpg', 'png'], accept_multiple_files=True, help="Maximum 50 files")
+                if images and len(images) > 50:
+                    st.toast(
+                        "⚠️ Only 50 files can be processed at any given time!")
+                else:
+                    upload_validation = True
 
-    if st.session_state.images != []:
-        with st.session_state.upload_container:
-            st.text("✅ Upload complete")
-            for i in range(5, 0, -1):
-                st.progress(0, text=f"⌛ Starting operation in {i}s")
-                time.sleep(1)
-            my_bar = st.progress(0, text="Operation starting. Please wait.")
-        for i in range(len(st.session_state.images)):
-            if st.session_state.error_status["continue_processing"] is True:
-                generated_data = generate_image(
-                    st.session_state.images[i]['input_image'])
-                st.session_state.images[i]['output_image'] = generated_data["image"]
-                st.session_state.images[i]['image_description'] = generated_data["text"]
+        cache_images(images)
 
-                my_bar.progress(value=((i+1)/len(st.session_state.images)),
-                                text=f"{i+1}/{len(st.session_state.images)} completed")
+        if st.session_state.images != []:
+            with st.session_state.upload_container:
+                st.text("✅ Upload complete")
+                for i in range(5, 0, -1):
+                    st.progress(0, text=f"⌛ Starting operation in {i}s")
+                    time.sleep(1)
+                my_bar = st.progress(
+                    0, text="Operation starting. Please wait.")
+            for i in range(len(st.session_state.images)):
+                if st.session_state.error_status["continue_processing"] is True:
+                    generated_data = generate_image(
+                        st.session_state.images[i]['input_image'])
+                    st.session_state.images[i]['output_image'] = generated_data["image"]
+                    st.session_state.images[i]['image_description'] = generated_data["text"]
 
-                if i != (len(st.session_state.images)-1):
-                    time.sleep(30)
+                    my_bar.progress(value=((i+1)/len(st.session_state.images)),
+                                    text=f"{i+1}/{len(st.session_state.images)} completed")
 
-            if st.session_state.error_status["continue_processing"] is False:
-                with st.session_state.upload_container:
-                    st.error(
-                        st.session_state.error_status['error_msg'], icon="⚠️")
-                    break
+                    if i != (len(st.session_state.images)-1):
+                        time.sleep(30)
 
-        image_display()
+                if st.session_state.error_status["continue_processing"] is False:
+                    with st.session_state.upload_container:
+                        st.error(
+                            st.session_state.error_status['error_msg'], icon="⚠️")
+                        break
+
+            image_display()
 
 
 @st.fragment
@@ -134,7 +138,7 @@ def generate_image(image):
 
     image = PIL.Image.open(image)
 
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(api_key=st.session_state.api_key)
 
     text_input = ('The given is an image of a piece of clothing. I want you to generate a ultrarealistic image of the clothing on a person.',
                   'You must strictly make sure that the clothing is represented exactly how is given in the reference image.',
