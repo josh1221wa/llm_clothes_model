@@ -16,7 +16,7 @@ st.session_state.setdefault("error_status", {
     "continue_processing": True,
     "error_msg": None
 })
-st.session_state.setdefault("age_group", "")
+st.session_state.setdefault("age_group", None)
 st.session_state.setdefault("gender", None)
 
 
@@ -90,8 +90,8 @@ def image_display():
         with col1:
             image_id = st.number_input(label="Enter image number to regenerate",
                                        min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
-            age_group = st.text_input(
-                label="Enter an age group for this clothing (optional)", placeholder="eg: 3 - 5 years", key="age_group")
+            age_group = st.selectbox(
+                "Pick an age group for this clothing (optional)", ("Infant (0-2 years)", "Toddler (3-5 years)", "Child (6-12 years)", "Teen (13-17 years)", "Young Adult (18-25 years)", "Adult (26-40 years)", "Middle-aged Adult (41-60 years)", "Senior (60+ years)"), index=None, key="age_group")
 
             gender = st.selectbox(
                 "Pick the gender type for this clothing (optional)", ("Male", "Female"), index=None, key="gender")
@@ -148,10 +148,10 @@ def generate_image(image):
                   'You must show the person completely from head to toe and if any necessary piece of clothing is missing (such as a bottom from an image of a top), you may add as appropriate.',
                   'The generated image is to be used to display the item on an ecommerce website so keep that in mind when generating it.')
 
-    if st.session_state.age_group != "":
+    if st.session_state.age_group != None:
         text_input += (
-            f"The model must strictly be of the age group {st.session_state.age_group}", )
-        st.session_state.age_group = ""
+            f'The model must strictly be of the age group {st.session_state.age_group.split("(")[1].split(")")[0]}', )
+        st.session_state.age_group = None
 
     if st.session_state.gender != None:
         text_input += (
