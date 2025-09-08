@@ -16,6 +16,8 @@ st.session_state.setdefault("error_status", {
     "continue_processing": True,
     "error_msg": None
 })
+st.session_state.setdefault("age_group", "")
+st.session_state.setdefault("gender", None)
 
 
 def main():
@@ -88,7 +90,12 @@ def image_display():
         with col1:
             image_id = st.number_input(label="Enter image number to regenerate",
                                        min_value=1, max_value=len(st.session_state.images), placeholder="make sure you've got the right number!")
-        with col2:
+            age_group = st.text_input(
+                label="Enter an age group for this clothing (optional)", placeholder="eg: 3 - 5 years", key="age_group")
+
+            gender = st.selectbox(
+                "Pick the gender type for this clothing (optional)", ("Male", "Female"), index=None, key="gender")
+
             st.button(label="Regenerate image",
                       on_click=lambda: regenerate_image(image_id), type='primary')
 
@@ -140,6 +147,16 @@ def generate_image(image):
                   'You must strictly make sure that the clothing is represented exactly how is given in the reference image.',
                   'You must show the person completely from head to toe and if any necessary piece of clothing is missing (such as a bottom from an image of a top), you may add as appropriate.',
                   'The generated image is to be used to display the item on an ecommerce website so keep that in mind when generating it.')
+
+    if st.session_state.age_group != "":
+        text_input += (
+            f"The model must strictly be of the age group {st.session_state.age_group}", )
+        st.session_state.age_group = ""
+
+    if st.session_state.gender != None:
+        text_input += (
+            f"The model must strictly be of the gender {st.session_state.gender}", )
+        st.session_state.gender = None
 
     output = {"text": None, "image": None}
 
