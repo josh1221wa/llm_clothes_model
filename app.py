@@ -71,16 +71,19 @@ def main():
 def image_display():
     st.markdown("### Review Images")
     for i in range(len(st.session_state.images)):
-        if st.session_state.images[i]['output_image'] is not None:
-            with st.expander(label=f"Image {i+1}"):
-                col1, col2 = st.columns(
-                    2, vertical_alignment="center")
-                with col1:
-                    st.image(st.session_state.images[i]['input_image'])
+        with st.expander(label=f"Image {i+1}"):
+            col1, col2 = st.columns(
+                2, vertical_alignment="center")
+            with col1:
+                st.image(st.session_state.images[i]['input_image'])
+
+            if st.session_state.images[i]['output_image'] is not None:
                 with col2:
                     st.image(st.session_state.images[i]['output_image'])
-        else:
-            continue
+            else:
+                pass
+            if st.session_state.images[i]['image_description'] is not None:
+                st.info(st.session_state.images[i]['image_description'])
 
     if st.session_state.error_status["continue_processing"] is True:
         st.markdown("### Regenerate Images")
@@ -163,7 +166,7 @@ def generate_image(image):
     while attempts < MAX_RETRIES:
         try:
             response = client.models.generate_content(
-                model="gemini-2.0-flash-preview-image-generation",
+                model="gemini-2.5-flash-image",
                 contents=[text_input, image],
                 config=types.GenerateContentConfig(
                     response_modalities=['TEXT', 'IMAGE'],
